@@ -6,6 +6,8 @@ use std::io::{stdin, stdout, Write};
 use std::fs;
 use std::path::Path;
 
+use crate::dbconnector::get_tables;
+
 
 fn strip_trailing_newline(input: &str) -> String {
     input
@@ -55,8 +57,7 @@ fn init(dir_path: &str) {
     let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
     println!("{}", conn_str);
     let mut client = db_init(&conn_str);
-    let rows = client.query("select column_name, data_type, character_maximum_length, column_default, is_nullable from INFORMATION_SCHEMA.COLUMNS", &[]);
-    println!("{:?}", rows);
+    get_tables(&mut client);
 }
 
 fn main() {
