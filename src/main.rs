@@ -1,6 +1,6 @@
 mod dbconnector;
 
-use dbconnector::db_init;
+use dbconnector::{db_init, Table};
 use std::env;
 use std::io::{stdin, stdout, Write};
 use std::fs;
@@ -25,7 +25,6 @@ fn init(dir_path: &str) {
     println!("Directory was created succesfully");
 
     println!("Input your credentials for database:");
-
 
 	let cred_exists = Path::new(".credentials").exists();
 
@@ -55,9 +54,17 @@ fn init(dir_path: &str) {
     password = strip_trailing_newline(&mut password);
 
     let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
-    println!("{}", conn_str);
     let mut client = db_init(&conn_str);
-    get_tables(&mut client);
+    let tables: Vec<Table> = get_tables(&mut client);
+
+    println!("Tables found: {}.", tables.len());
+    for table in tables {
+        println!("    {}.{}", table.domain, table.name);
+    }
+}
+
+fn status() {
+
 }
 
 fn main() {
@@ -75,8 +82,8 @@ fn main() {
 
     match command {
         "init" => init(&current_dir),
+        "status" => println!(&current_dir),
         "add" => println!("add"),
-        "status" => println!("status"),
         "commit" => println!("commit"),
         "push" => println!("push"),
         _ => println!("Unknown command"),
