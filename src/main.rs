@@ -1,13 +1,11 @@
 mod dbconnector;
 
-use dbconnector::{db_init, Table};
+use dbconnector::{db_init, Table, get_tables};
 use std::env;
 use std::io::{stdin, stdout, Write};
 use std::fs;
 use std::path::Path;
-
-use crate::dbconnector::get_tables;
-
+use colored::Colorize;
 
 fn strip_trailing_newline(input: &str) -> String {
     input
@@ -18,7 +16,12 @@ fn strip_trailing_newline(input: &str) -> String {
 }
 
 fn init(dir_path: &str) {
+
+    Path::new("sd;lkfjsd;lkf");
 	println!("{}{}", dir_path,  "/.dgit");
+//     if Path::new(format!("{}{}", dir_path, "/.dgit"))::is_dir() {
+// 
+//     }
     fs::create_dir_all(format!("{}{}", dir_path, "/.dgit"))
         .unwrap_or_else(|err| { println!("Error occured:\n{}", err) });
 
@@ -26,7 +29,7 @@ fn init(dir_path: &str) {
 
     println!("Input your credentials for database:");
 
-	let cred_exists = Path::new(".credentials").exists();
+    let cred_exists = Path::new(".credentials").exists();
 
     let mut url: String = String::new();
     let mut dbname: String = String::new();
@@ -57,13 +60,13 @@ fn init(dir_path: &str) {
     let mut client = db_init(&conn_str);
     let tables: Vec<Table> = get_tables(&mut client);
 
-    println!("Tables found: {}.", tables.len());
+    println!("Tables found: {}.\n", tables.len());
     for table in tables {
-        println!("    {}.{}", table.domain, table.name);
+        println!("    {}{}{}", table.domain.green(), String::from(".").green(), table.name.green());
     }
 }
 
-fn status() {
+fn status(dir_path: &str) {
 
 }
 
@@ -82,7 +85,7 @@ fn main() {
 
     match command {
         "init" => init(&current_dir),
-        "status" => println!(&current_dir),
+        "status" => status(&current_dir),
         "add" => println!("add"),
         "commit" => println!("commit"),
         "push" => println!("push"),
