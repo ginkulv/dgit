@@ -1,11 +1,13 @@
 mod dbconnector;
 
-use dbconnector::{db_init, Table, get_tables};
-use std::env;
-use std::io::{stdin, stdout, Write};
-use std::fs;
-use std::path::Path;
 use colored::Colorize;
+use dbconnector::{db_init, Table, get_tables};
+use serde_yaml::to_string;
+use std::collections::BTreeMap;
+use std::env;
+use std::fs;
+use std::io::{stdin, stdout, Write, Error};
+use std::path::Path;
 
 fn strip_trailing_newline(input: &str) -> String {
     input
@@ -15,21 +17,27 @@ fn strip_trailing_newline(input: &str) -> String {
         .to_string()
 }
 
-fn init(dir_path: &str) {
+fn init(dir_path: &str) -> Result<(), Error> {
+    let path = format!("{}{}", dir_path, "/.dgit");
 
-    Path::new("sd;lkfjsd;lkf");
-	println!("{}{}", dir_path,  "/.dgit");
-//     if Path::new(format!("{}{}", dir_path, "/.dgit"))::is_dir() {
-// 
-//     }
-    fs::create_dir_all(format!("{}{}", dir_path, "/.dgit"))
-        .unwrap_or_else(|err| { println!("Error occured:\n{}", err) });
+    if !Path::new(&path).exists() {
+        fs::create_dir_all(&path)?;
+        println!("Directory .dgit was created successfully");
+    } else {
+        println!("Direcotry .dgit already exists");
+    }
 
-    println!("Directory was created succesfully");
+    let cred_path = format!("{}{}", path, "/.credentials");
+
+    if Path::new(&cred_path).exists() {
+        println!("File .credentials already exists");
+        return Ok(())
+    } else {
+        fs::File::create(&cred_path)?;
+        println!("File .credentials was created successfully");
+    }
 
     println!("Input your credentials for database:");
-
-    let cred_exists = Path::new(".credentials").exists();
 
     let mut url: String = String::new();
     let mut dbname: String = String::new();
@@ -56,29 +64,51 @@ fn init(dir_path: &str) {
     stdin().read_line(&mut password).expect("Something went wrong");
     password = strip_trailing_newline(&mut password);
 
-    let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
-    let mut client = db_init(&conn_str);
-    let tables: Vec<Table> = get_tables(&mut client);
 
-    println!("Tables found: {}.\n", tables.len());
-    for table in tables {
-        println!("    {}{}{}", table.domain.green(), String::from(".").green(), table.name.green());
-    }
+    let mut credentials: BTreeMap<&str, &str> = BTreeMap::new();
+    credentials.insert("url", &url);
+    credentials.insert("dbname", &dbname);
+    credentials.insert("name", &name);
+    credentials.insert("password", &password);
+
+    let yaml = to_string(&credentials).unwrap();
+    std::fs::write(&cred_path, &yaml)?;
+
+    println!("Repository was initialized successfully");
+
+    // let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
+    // let mut client = db_init(&conn_str);
+    // let tables: Vec<Table> = get_tables(&mut client);
+
+    // println!("Tables found: {}.\n", tables.len());
+    // for table in tables {
+        // println!("    {}{}{}", table.domain.green(), String::from(".").green(), table.name.green());
+    // }
+    Ok(())
 }
 
-fn status(dir_path: &str) {
-
+fn status(dir_path: &str) -> Result<(), Error> {
+    Ok(())
 }
 
-fn main() {
-	let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
-	println!("{}", current_dir);
+fn add(dir_path: &str) -> Result<(), Error> {
+    Ok(())
+}
+
+fn commit(dir_path: &str) -> Result<(), Error> {
+    Ok(())
+}
+
+fn push(dir_path: &str) -> Result<(), Error> {
+    Ok(())
+}
+
+fn main() -> Result<(), Error> {
+    let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
     let args: Vec<String> = env::args().collect();
-    // println!("{:?}", args);
 
     if args.len() == 1 {
         println!("No arguments provided");
-        return;
     }
 
     let command: &str = &args[1];
@@ -86,9 +116,9 @@ fn main() {
     match command {
         "init" => init(&current_dir),
         "status" => status(&current_dir),
-        "add" => println!("add"),
-        "commit" => println!("commit"),
-        "push" => println!("push"),
-        _ => println!("Unknown command"),
+        "add" => add(&current_dir),
+        "commit" => commit(&current_dir),
+        "push" => push(&current_dir),
+        _ => panic!("Incorrect command: {} not found!", command)
     }
 }
