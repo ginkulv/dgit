@@ -1,41 +1,39 @@
-mod dbconnector;
+pub mod dbconnector;
+pub mod utils;
 
 use colored::Colorize;
-use dbconnector::{db_init, Table, get_tables};
+use utils::{repo_exists, read_credentials, strip_trailing_newline, parse_entity};
+use dbconnector::{db_init, Entity, get_entities};
 use serde_yaml::to_string;
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
-use std::io::{stdin, stdout, Write, Error};
+use std::io::{stdin, stdout, Write};
 use std::path::Path;
 
-fn strip_trailing_newline(input: &str) -> String {
-    input
-        .strip_suffix("\r\n")
-        .or(input.strip_suffix("\n"))
-        .unwrap_or(input)
-        .to_string()
-}
-
-fn init(dir_path: &str) -> Result<(), Error> {
+fn init(dir_path: &str) {
+    if repo_exists(dir_path) {
+        println!("Repository already exists");
+        return
+    }
     let path = format!("{}{}", dir_path, "/.dgit");
 
-    if !Path::new(&path).exists() {
-        fs::create_dir_all(&path)?;
-        println!("Directory .dgit was created successfully");
-    } else {
-        println!("Direcotry .dgit already exists");
-    }
+    match fs::create_dir_all(&path) {
+        Ok(_res) => println!("Directory .dgit was created successfully"),
+        Err(_err) => { println!("Couldn't create directory {}!", &path); return }
+    };
 
     let cred_path = format!("{}{}", path, "/.credentials");
 
     if Path::new(&cred_path).exists() {
         println!("File .credentials already exists");
-        return Ok(())
-    } else {
-        fs::File::create(&cred_path)?;
-        println!("File .credentials was created successfully");
+        return
     }
+
+    match fs::File::create(&cred_path) {
+        Ok(_res) => println!("File .credentials was created successfully"),
+        Err(_err) => { println!("Couldn't create the .credentials file"); return }
+    };
 
     println!("Input your credentials for database:");
 
@@ -64,7 +62,6 @@ fn init(dir_path: &str) -> Result<(), Error> {
     stdin().read_line(&mut password).expect("Something went wrong");
     password = strip_trailing_newline(&mut password);
 
-
     let mut credentials: BTreeMap<&str, &str> = BTreeMap::new();
     credentials.insert("url", &url);
     credentials.insert("dbname", &dbname);
@@ -72,38 +69,78 @@ fn init(dir_path: &str) -> Result<(), Error> {
     credentials.insert("password", &password);
 
     let yaml = to_string(&credentials).unwrap();
-    std::fs::write(&cred_path, &yaml)?;
-
-    println!("Repository was initialized successfully");
-
-    // let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
-    // let mut client = db_init(&conn_str);
-    // let tables: Vec<Table> = get_tables(&mut client);
-
-    // println!("Tables found: {}.\n", tables.len());
-    // for table in tables {
-        // println!("    {}{}{}", table.domain.green(), String::from(".").green(), table.name.green());
-    // }
-    Ok(())
+    match std::fs::write(&cred_path, &yaml) {
+        Ok(_res) => println!("Repository was initialized successfully"),
+        Err(_err) => {
+            print!("Coudn't save credentials");
+            return
+        }
+    };
 }
 
-fn status(dir_path: &str) -> Result<(), Error> {
-    Ok(())
+fn status(dir_path: &str) {
+    if !repo_exists(dir_path) {
+        println!("Not in repository!");
+        return
+    }
+
+    let credentials = match read_credentials(dir_path) {
+        Ok(credentials) => credentials,
+        Err(_err) => {
+            println!("File .credentials doesn't exists!");  // TODO suggest creating one
+            return
+        }
+    };
+
+    let name: &str = credentials.get("name").unwrap();
+    let password: &str = credentials.get("password").unwrap();
+    let url: &str = credentials.get("url").unwrap();
+    let dbname: &str = credentials.get("dbname").unwrap();
+
+    let mut client = db_init(name, password, url, dbname);
+    let entities: Vec<Entity> = get_entities(&mut client);
+
+    println!("Entitys found: {}.", entities.len());
+    println!("Untracked tables:");
+    for entity in entities {
+        println!("    {}{}{}", entity.domain.green(), String::from(".").green(), entity.name.green());
+    }
 }
 
-fn add(dir_path: &str) -> Result<(), Error> {
-    Ok(())
+fn add(dir_path: &str, arguments: &[String]) {
+    if !repo_exists(dir_path) {
+        println!("Not in repository!");
+        return
+    }
+
+    let credentials = match read_credentials(dir_path) {
+        Ok(credentials) => credentials,
+        Err(_err) => { println!("File .credentials doesn't exists!"); return } // TODO suggest creating one
+    };
+
+    let name: &str = credentials.get("name").unwrap();
+    let password: &str = credentials.get("password").unwrap();
+    let url: &str = credentials.get("url").unwrap();
+    let dbname: &str = credentials.get("dbname").unwrap();
+
+    let mut client = db_init(name, password, url, dbname);
+    let entities: Vec<Entity> = get_entities(&mut client);
+    let entities_add: Vec<Entity> = Vec::new();
+
+    for argument in arguments {
+        println!("{}", argument);
+        let entity = parse_entity(&argument);
+        println!("{:?}", entity.name);
+    }
 }
 
-fn commit(dir_path: &str) -> Result<(), Error> {
-    Ok(())
+fn commit(_dir_path: &str) {
 }
 
-fn push(dir_path: &str) -> Result<(), Error> {
-    Ok(())
+fn push(_dir_path: &str) {
 }
 
-fn main() -> Result<(), Error> {
+fn main() {
     let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
     let args: Vec<String> = env::args().collect();
 
@@ -112,13 +149,14 @@ fn main() -> Result<(), Error> {
     }
 
     let command: &str = &args[1];
+    init(&current_dir);
 
-    match command {
+    let _result = match command {
         "init" => init(&current_dir),
         "status" => status(&current_dir),
-        "add" => add(&current_dir),
+        "add" => add(&current_dir, &args[2..]),
         "commit" => commit(&current_dir),
         "push" => push(&current_dir),
         _ => panic!("Incorrect command: {} not found!", command)
-    }
+    };
 }

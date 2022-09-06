@@ -1,34 +1,42 @@
-use postgres::{Client, NoTls, Error};
+use postgres::Client;
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
 
-pub struct Table {
-    pub domain: String,
-    pub name: String,
+pub enum EntityType {
+    TABLE,
+    NONE
 }
 
-impl Table {
-    pub fn new(domain: String, name: String) -> Self {
-        Table {
+pub struct Entity {
+    pub domain: String,
+    pub name: String,
+    pub entity_type: EntityType,
+}
+
+impl Entity {
+    pub fn new(domain: String, name: String, entity_type: EntityType) -> Self {
+        Entity {
             domain,
-            name
+            name,
+            entity_type
         }
     }
 }
 
-pub fn db_init(url: &str) -> Client {
+pub fn db_init(name: &str, password: &str, url: &str, dbname: &str) -> Client {
+    let conn_str = format!("postgresql://{}:{}@{}/{}", name, &password, &url, &dbname);
     let connector = TlsConnector::builder().build().expect("An error occured");
     let connector = MakeTlsConnector::new(connector);
-    return Client::connect(url, connector).expect("An error occured");
+    return Client::connect(&conn_str, connector).expect("An error occured");
 }
 
-pub fn get_tables(client: &mut Client) -> Vec<Table>  {
-    let mut tables: Vec<Table> = Vec::new();
+pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
+    let mut entities: Vec<Entity> = Vec::new();
     for row in client.query("select distinct table_schema, table_name
         from information_schema.columns
         where table_schema not in ('information_schema', 'pg_catalog')", &[]).unwrap() {
-            let table = Table::new(row.get("table_schema"), row.get("table_name"));
-            tables.push(table);
+            let entity = Entity::new(row.get("table_schema"), row.get("table_name"), EntityType::TABLE);
+            entities.push(entity);
     }
-    return tables;
+    return entities;
 }
