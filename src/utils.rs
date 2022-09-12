@@ -1,12 +1,9 @@
-#[path = "dbconnector.rs"]
-mod dbconnector;
-
 use std::fs;
 use std::path::Path;
 use std::collections::BTreeMap;
 use std::io::Error;
-use serde_yaml::from_reader;
-use dbconnector::{Entity, EntityType};
+use serde_yaml::{from_reader, to_string};
+use crate::dbconnector::Entity;
 
 pub fn repo_exists(dir_path: &str) -> bool {
     let path = format!("{}{}", dir_path, "/.dgit");
@@ -20,6 +17,13 @@ pub fn read_credentials(dir_path: &str) -> Result<BTreeMap<String, String>, Erro
     Ok(credentials)
 }
 
+pub fn store_added_changes(dir_path: &str, changed: &BTreeMap<String, Vec<String>>) -> Result<(), Error> {
+    let path = format!("{}{}", dir_path, "/.dgit/add");
+    let yaml = to_string(changed).unwrap(); 
+    fs::write(&path, &yaml)?;
+    Ok(())
+}
+
 pub fn strip_trailing_newline(input: &str) -> String {
     input
         .strip_suffix("\r\n")
@@ -28,12 +32,12 @@ pub fn strip_trailing_newline(input: &str) -> String {
         .to_string()
 }
 
-pub fn parse_entity(argument: &str) -> Entity {
+pub fn parse_argument(argument: &str) -> Result<Entity, String> {
     let result: Vec<&str> = argument.split(".").collect();
     if result.len() == 1 {
-        return
+        return Err(format!("Invalid argument provided: {}", &argument))
     }
     let domain = result[0];
     let name = result[1];
-    Entity::new(String::from(domain), String::from(name), EntityType::NONE)
+    Ok(Entity::new(String::from(domain), String::from(name)))
 }

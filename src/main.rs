@@ -1,8 +1,8 @@
-pub mod dbconnector;
-pub mod utils;
+mod dbconnector;
+mod utils;
 
 use colored::Colorize;
-use utils::{repo_exists, read_credentials, strip_trailing_newline, parse_entity};
+use utils::*;
 use dbconnector::{db_init, Entity, get_entities};
 use serde_yaml::to_string;
 use std::collections::BTreeMap;
@@ -125,13 +125,30 @@ fn add(dir_path: &str, arguments: &[String]) {
 
     let mut client = db_init(name, password, url, dbname);
     let entities: Vec<Entity> = get_entities(&mut client);
-    let entities_add: Vec<Entity> = Vec::new();
+    let mut entities_add: Vec<Entity> = Vec::new();
 
     for argument in arguments {
-        println!("{}", argument);
-        let entity = parse_entity(&argument);
-        println!("{:?}", entity.name);
+        println!("Argument: {}", argument);
+        let entity = match parse_argument(&argument) {
+            Ok(entity) => entity,
+            Err(error) => { println!("{}", error); return }
+        };
+        println!("{}", entity.to_string());
+        entities_add.push(entity);
     }
+
+    let mut changed: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut tables: Vec<String> = Vec::new();
+    for entity in entities_add {
+        if entities.contains(&entity) {
+            tables.push(entity.to_string());
+        }
+    }
+    changed.insert(String::from("tables"), tables);
+    match store_added_changes(dir_path, &changed) {
+        Ok(()) => println!("Added changes successfully"),
+        Err(_err) => { println!("Coudn't write the changes"); return }
+    };
 }
 
 fn commit(_dir_path: &str) {
@@ -149,8 +166,6 @@ fn main() {
     }
 
     let command: &str = &args[1];
-    init(&current_dir);
-
     let _result = match command {
         "init" => init(&current_dir),
         "status" => status(&current_dir),

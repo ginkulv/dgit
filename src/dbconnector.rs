@@ -2,24 +2,27 @@ use postgres::Client;
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
 
-pub enum EntityType {
-    TABLE,
-    NONE
-}
-
 pub struct Entity {
     pub domain: String,
     pub name: String,
-    pub entity_type: EntityType,
+}
+
+impl PartialEq for Entity {
+    fn eq(&self, other: &Self) -> bool {
+        self.domain == other.domain && self.name == other.name
+    }
 }
 
 impl Entity {
-    pub fn new(domain: String, name: String, entity_type: EntityType) -> Self {
+    pub fn new(domain: String, name: String) -> Self {
         Entity {
             domain,
             name,
-            entity_type
         }
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("{}.{}", self.domain, self.name)
     }
 }
 
@@ -35,7 +38,7 @@ pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
     for row in client.query("select distinct table_schema, table_name
         from information_schema.columns
         where table_schema not in ('information_schema', 'pg_catalog')", &[]).unwrap() {
-            let entity = Entity::new(row.get("table_schema"), row.get("table_name"), EntityType::TABLE);
+            let entity = Entity::new(row.get("table_schema"), row.get("table_name"));
             entities.push(entity);
     }
     return entities;
