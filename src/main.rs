@@ -128,7 +128,6 @@ fn add(dir_path: &str, arguments: &[String]) {
     let mut entities_add: Vec<Entity> = Vec::new();
 
     for argument in arguments {
-        println!("Argument: {}", argument);
         let entity = match parse_argument(&argument) {
             Ok(entity) => entity,
             Err(error) => { println!("{}", error); return }
