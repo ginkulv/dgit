@@ -17,6 +17,13 @@ pub fn read_credentials(dir_path: &str) -> Result<BTreeMap<String, String>, Erro
     Ok(credentials)
 }
 
+pub fn store_credentials(dir_path: &str, credentials: &BTreeMap<&str, &str>) -> Result<(), Error> {
+    let path = format!("{}{}", dir_path, "/.dgit/.credentials");
+    let yaml = to_string(&credentials).unwrap();
+    std::fs::write(&path, &yaml)?;
+    Ok(())
+}
+
 pub fn store_added_changes(dir_path: &str, changed: &BTreeMap<String, Vec<String>>) -> Result<(), Error> {
     let path = format!("{}{}", dir_path, "/.dgit/add");
     let yaml = to_string(changed).unwrap(); 

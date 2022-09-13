@@ -4,7 +4,6 @@ mod utils;
 use colored::Colorize;
 use utils::*;
 use dbconnector::{db_init, Entity, get_entities};
-use serde_yaml::to_string;
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
@@ -19,8 +18,8 @@ fn init(dir_path: &str) {
     let path = format!("{}{}", dir_path, "/.dgit");
 
     match fs::create_dir_all(&path) {
-        Ok(_res) => println!("Directory .dgit was created successfully"),
-        Err(_err) => { println!("Couldn't create directory {}!", &path); return }
+        Ok(_) => println!("Directory .dgit was created successfully"),
+        Err(_) => { println!("Couldn't create directory {}!", &path); return }
     };
 
     let cred_path = format!("{}{}", path, "/.credentials");
@@ -31,8 +30,8 @@ fn init(dir_path: &str) {
     }
 
     match fs::File::create(&cred_path) {
-        Ok(_res) => println!("File .credentials was created successfully"),
-        Err(_err) => { println!("Couldn't create the .credentials file"); return }
+        Ok(_) => println!("File .credentials was created successfully"),
+        Err(_) => { println!("Couldn't create the .credentials file"); return }
     };
 
     println!("Input your credentials for database:");
@@ -68,10 +67,9 @@ fn init(dir_path: &str) {
     credentials.insert("name", &name);
     credentials.insert("password", &password);
 
-    let yaml = to_string(&credentials).unwrap();
-    match std::fs::write(&cred_path, &yaml) {
-        Ok(_res) => println!("Repository was initialized successfully"),
-        Err(_err) => {
+    match store_credentials(dir_path, &credentials) {
+        Ok(_) => println!("Repository was initialized successfully"),
+        Err(_) => {
             print!("Coudn't save credentials");
             return
         }
@@ -86,7 +84,7 @@ fn status(dir_path: &str) {
 
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
-        Err(_err) => {
+        Err(_) => {
             println!("File .credentials doesn't exists!");  // TODO suggest creating one
             return
         }
@@ -115,7 +113,7 @@ fn add(dir_path: &str, arguments: &[String]) {
 
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
-        Err(_err) => { println!("File .credentials doesn't exists!"); return } // TODO suggest creating one
+        Err(_) => { println!("File .credentials doesn't exists!"); return } // TODO suggest creating one
     };
 
     let name: &str = credentials.get("name").unwrap();
@@ -146,7 +144,7 @@ fn add(dir_path: &str, arguments: &[String]) {
     changed.insert(String::from("tables"), tables);
     match store_added_changes(dir_path, &changed) {
         Ok(()) => println!("Added changes successfully"),
-        Err(_err) => { println!("Coudn't write the changes"); return }
+        Err(_) => { println!("Coudn't write the changes"); return }
     };
 }
 
