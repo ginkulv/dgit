@@ -160,12 +160,6 @@ fn add(dir_path: &str, arguments: &[String]) {
     };
 }
 
-fn commit(_dir_path: &str) {
-}
-
-fn push(_dir_path: &str) {
-}
-
 fn main() {
     let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
     let args: Vec<String> = env::args().collect();
@@ -179,8 +173,6 @@ fn main() {
         "init" => init(&current_dir),
         "status" => status(&current_dir),
         "add" => add(&current_dir, &args[2..]),
-        "commit" => commit(&current_dir),
-        "push" => push(&current_dir),
         _ => panic!("Incorrect command: {} not found!", command)
     };
 }
