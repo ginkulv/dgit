@@ -1,8 +1,10 @@
 mod dbconnector;
 mod utils;
+mod files;
 
 use colored::Colorize;
 use utils::*;
+use files::*;
 use dbconnector::{db_init, Entity, get_entities};
 use std::collections::BTreeMap;
 use std::env;
