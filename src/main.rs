@@ -100,22 +100,23 @@ fn status(dir_path: &str) {
     let mut client = db_init(name, password, url, dbname);
     let untracked_entities: Vec<Entity> = get_entities(&mut client);
 
-    let added_entities: Vec<Entity> = read_added_entities(&dir_path).unwrap();
+    let staged_entities: Vec<Entity> = read_staged(&dir_path).unwrap_or_default();
 
-    println!("Entities found: {}.", untracked_entities.len());
-    println!("Untracked tables:");
+    println!("Found: {}.", untracked_entities.len());
+    println!("Untracked:");
     for entity in &untracked_entities {
-        for added in &added_entities {
-            if entity != added {
-                println!("    {}{}{}", entity.domain.green(), String::from(".").green(), entity.name.green());
+        for staged in &staged_entities {
+            if entity == staged {
+                continue;
             }
         }
+        println!("    {}{}{}", entity.domain.red(), String::from(".").red(), entity.name.red());
     }
 
     println!();
-    println!("Added tables:");
-    for entity in &added_entities {
-        println!("    {}{}{}", entity.domain.red(), String::from(".").red(), entity.name.red());
+    println!("Added:");
+    for staged in &staged_entities {
+        println!("    {}{}{}", staged.domain.green(), String::from(".").green(), staged.name.green());
     }
 }
 
@@ -148,15 +149,13 @@ fn add(dir_path: &str, arguments: &[String]) {
         entities_add.push(entity);
     }
 
-    let mut changed: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut tables: Vec<String> = Vec::new();
     for entity in entities_add {
         if entities.contains(&entity) {
             tables.push(entity.to_string());
         }
     }
-    changed.insert(String::from("tables"), tables);
-    match store_added_entities(dir_path, &changed) {
+    match store_staged(dir_path, &tables) {
         Ok(()) => println!("Added changes successfully"),
         Err(_) => { println!("Coudn't write the changes"); return }
     };
