@@ -96,12 +96,24 @@ fn status(dir_path: &str) {
     let dbname: &str = credentials.get("dbname").unwrap();
 
     let mut client = db_init(name, password, url, dbname);
-    let entities: Vec<Entity> = get_entities(&mut client);
+    let untracked_entities: Vec<Entity> = get_entities(&mut client);
 
-    println!("Entitys found: {}.", entities.len());
+    let added_entities: Vec<Entity> = read_added_entities(&dir_path).unwrap();
+
+    println!("Entities found: {}.", untracked_entities.len());
     println!("Untracked tables:");
-    for entity in entities {
-        println!("    {}{}{}", entity.domain.green(), String::from(".").green(), entity.name.green());
+    for entity in &untracked_entities {
+        for added in &added_entities {
+            if entity != added {
+                println!("    {}{}{}", entity.domain.green(), String::from(".").green(), entity.name.green());
+            }
+        }
+    }
+
+    println!();
+    println!("Added tables:");
+    for entity in &added_entities {
+        println!("    {}{}{}", entity.domain.red(), String::from(".").red(), entity.name.red());
     }
 }
 
@@ -142,7 +154,7 @@ fn add(dir_path: &str, arguments: &[String]) {
         }
     }
     changed.insert(String::from("tables"), tables);
-    match store_added_changes(dir_path, &changed) {
+    match store_added_entities(dir_path, &changed) {
         Ok(()) => println!("Added changes successfully"),
         Err(_) => { println!("Coudn't write the changes"); return }
     };

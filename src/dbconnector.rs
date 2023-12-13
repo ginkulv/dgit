@@ -30,6 +30,7 @@ pub fn db_init(name: &str, password: &str, url: &str, dbname: &str) -> Client {
     let conn_str = format!("postgresql://{}:{}@{}/{}", name, &password, &url, &dbname);
     let connector = TlsConnector::builder().build().expect("An error occured");
     let connector = MakeTlsConnector::new(connector);
+    println!("{}", &conn_str);
     return Client::connect(&conn_str, connector).expect("An error occured");
 }
 
