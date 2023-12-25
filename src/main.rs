@@ -99,27 +99,38 @@ fn status(dir_path: &str) {
 
     let mut client = match db_init(name, password, url, dbname) {
         Ok(client) => client,
-        Err(_) => { println!("Coudln't connect to the database"); std::process::exit(0); }
+        Err(_) => { println!("Coudln't connect to the database"); return; }
     };
-    let untracked_entities: Vec<Entity> = get_entities(&mut client);
-
+    let entities: Vec<Entity> = get_entities(&mut client);
     let staged_entities: Vec<Entity> = read_staged(&dir_path).unwrap_or_default();
 
-    println!("Found: {}.", untracked_entities.len());
-    println!("Untracked:");
-    for entity in &untracked_entities {
+    let mut untracked_entities: Vec<&Entity> = Vec::new();
+    let mut entity_is_staged: bool;
+    for entity in &entities {
+        entity_is_staged = false;
         for staged in &staged_entities {
             if entity == staged {
-                continue;
+                entity_is_staged = true;
+                break;
             }
         }
-        println!("    {}{}{}", entity.domain.red(), String::from(".").red(), entity.name.red());
+        if !entity_is_staged {
+            untracked_entities.push(entity);
+        }
     }
 
-    println!();
-    println!("Added:");
-    for staged in &staged_entities {
-        println!("    {}{}{}", staged.domain.green(), String::from(".").green(), staged.name.green());
+    if untracked_entities.len() != 0 {
+        println!("Untracked:");
+        for entity in &untracked_entities {
+            println!("    {}{}{}", entity.domain.red(), String::from(".").red(), entity.name.red());
+        }
+    }
+
+    if staged_entities.len() != 0 {
+        println!("Staged:");
+        for staged in &staged_entities {
+            println!("    {}{}{}", staged.domain.green(), String::from(".").green(), staged.name.green());
+        }
     }
 }
 
