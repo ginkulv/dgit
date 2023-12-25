@@ -1,4 +1,4 @@
-use postgres::Client;
+use postgres::{Client, Error};
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
 
@@ -26,11 +26,11 @@ impl Entity {
     }
 }
 
-pub fn db_init(name: &str, password: &str, url: &str, dbname: &str) -> Client {
+pub fn db_init(name: &str, password: &str, url: &str, dbname: &str) -> Result<Client, Error> {
     let conn_str = format!("postgresql://{}:{}@{}/{}", name, &password, &url, &dbname);
-    let connector = TlsConnector::builder().build().expect("An error occured");
+    let connector = TlsConnector::builder().build().expect("TlsConnector built successfully");
     let connector = MakeTlsConnector::new(connector);
-    return Client::connect(&conn_str, connector).expect("An error occured");
+    Client::connect(&conn_str, connector)
 }
 
 pub fn get_entities(client: &mut Client) -> Vec<Entity>  {

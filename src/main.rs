@@ -15,7 +15,7 @@ use std::path::Path;
 fn init(dir_path: &str) {
     if repo_exists(dir_path) {
         println!("Repository already exists");
-        return
+        std::process::exit(0);
     }
     let path = format!("{}{}", dir_path, "/.dgit");
 
@@ -97,7 +97,10 @@ fn status(dir_path: &str) {
     let url: &str = credentials.get("url").unwrap();
     let dbname: &str = credentials.get("dbname").unwrap();
 
-    let mut client = db_init(name, password, url, dbname);
+    let mut client = match db_init(name, password, url, dbname) {
+        Ok(client) => client,
+        Err(_) => { println!("Coudln't connect to the database"); std::process::exit(0); }
+    };
     let untracked_entities: Vec<Entity> = get_entities(&mut client);
 
     let staged_entities: Vec<Entity> = read_staged(&dir_path).unwrap_or_default();
@@ -136,7 +139,10 @@ fn add(dir_path: &str, arguments: &[String]) {
     let url: &str = credentials.get("url").unwrap();
     let dbname: &str = credentials.get("dbname").unwrap();
 
-    let mut client = db_init(name, password, url, dbname);
+    let mut client = match db_init(name, password, url, dbname) {
+        Ok(client) => client,
+        Err(_) => { println!("Coudln't connect to the database"); std::process::exit(0); }
+    };
     let entities: Vec<Entity> = get_entities(&mut client);
     let mut entities_add: Vec<Entity> = Vec::new();
 
@@ -167,6 +173,7 @@ fn main() {
 
     if args.len() == 1 {
         println!("No arguments provided");
+        std::process::exit(0);
     }
 
     let command: &str = &args[1];
@@ -174,6 +181,6 @@ fn main() {
         "init" => init(&current_dir),
         "status" => status(&current_dir),
         "add" => add(&current_dir, &args[2..]),
-        _ => panic!("Incorrect command: {} not found!", command)
+        _ => println!("Invalid command: {}", command)
     };
 }
