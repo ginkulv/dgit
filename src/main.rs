@@ -9,7 +9,6 @@ use dbconnector::{db_init, Entity, get_entities};
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
-use std::io::{stdin, stdout, Write};
 use std::path::Path;
 
 fn init(dir_path: &str) {
@@ -38,36 +37,17 @@ fn init(dir_path: &str) {
 
     println!("Input your credentials for database:");
 
-    let mut url: String = String::new();
-    let mut dbname: String = String::new();
-    let mut name: String = String::new();
-    let mut password: String = String::new();
+    let url: String = read_string("Url");
+    let dbname: String = read_string("Database name");
+    let name: String = read_string("Username");
+    let password: String = read_string("Password");
 
-    print!("Url: ");
-    stdout().flush().ok();
-    stdin().read_line(&mut url).expect("Something went wrong");
-    url = strip_trailing_newline(&mut url);
-
-    print!("Database name: ");
-    stdout().flush().ok();
-    stdin().read_line(&mut dbname).expect("Something went wrong");
-    dbname = strip_trailing_newline(&mut dbname);
-
-    print!("Username: ");
-    stdout().flush().ok();
-    stdin().read_line(&mut name).expect("Something went wrong");
-    name = strip_trailing_newline(&mut name);
-
-    print!("Password: ");
-    stdout().flush().ok();
-    stdin().read_line(&mut password).expect("Something went wrong");
-    password = strip_trailing_newline(&mut password);
-
-    let mut credentials: BTreeMap<&str, &str> = BTreeMap::new();
-    credentials.insert("url", &url);
-    credentials.insert("dbname", &dbname);
-    credentials.insert("name", &name);
-    credentials.insert("password", &password);
+    let credentials: BTreeMap<&str, &str> = BTreeMap::from([
+        ("url", url.as_str()),
+        ("dbname", dbname.as_str()),
+        ("name", name.as_str()),
+        ("password", password.as_str()),
+    ]);
 
     match store_credentials(dir_path, &credentials) {
         Ok(_) => println!("Repository was initialized successfully"),
