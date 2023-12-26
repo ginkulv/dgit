@@ -114,7 +114,7 @@ fn status(dir_path: &str) {
     }
 }
 
-fn add(dir_path: &str, arguments: &[String]) {
+fn stage(dir_path: &str, arguments: &[String]) {
     if !repo_exists(dir_path) {
         println!("Not in repository!");
         return
@@ -135,7 +135,7 @@ fn add(dir_path: &str, arguments: &[String]) {
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
     let entities: Vec<Entity> = get_entities(&mut client);
-    let mut entities_add: Vec<Entity> = Vec::new();
+    let mut entities_to_stage: Vec<Entity> = Vec::new();
 
     for argument in arguments {
         let entity = match parse_argument(&argument) {
@@ -144,10 +144,10 @@ fn add(dir_path: &str, arguments: &[String]) {
         };
         println!("{}", entity.to_string());
         if entities.contains(&entity) { 
-            entities_add.push(entity);
+            entities_to_stage.push(entity);
         }
     }
-    match store_staged(dir_path, entities_add) {
+    match store_staged(dir_path, entities_to_stage) {
         Ok(()) => println!("Staged successfully"),
         Err(_) => { println!("Coudln't stage"); return }
     };
@@ -166,7 +166,7 @@ fn main() {
     let _result = match command {
         "init" => init(&current_dir),
         "status" => status(&current_dir),
-        "add" => add(&current_dir, &args[2..]),
+        "stage" => stage(&current_dir, &args[2..]),
         _ => println!("Invalid command: {}", command)
     };
 }

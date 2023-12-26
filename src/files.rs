@@ -19,7 +19,7 @@ pub fn store_credentials(dir_path: &str, credentials: &BTreeMap<&str, &str>) -> 
 }
 
 pub fn read_staged_entities(dir_path: &str) -> Result<Vec<Entity>, Error> {
-    let path = format!("{}{}", dir_path, "/.dgit/add");
+    let path = format!("{}{}", dir_path, "/.dgit/stage");
     let file = fs::File::open(&path)?;
     let tables: Vec<String> = from_reader(&file).unwrap();
     let mut entities: Vec<Entity> = Vec::new();
@@ -36,7 +36,7 @@ pub fn read_staged_entities(dir_path: &str) -> Result<Vec<Entity>, Error> {
 
 pub fn store_staged(dir_path: &str, new_entities: Vec<Entity>) -> Result<(), Error> {
     let staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
-    let path = format!("{}{}", dir_path, "/.dgit/add");
+    let path = format!("{}{}", dir_path, "/.dgit/stage");
 
     let mut entities_to_stage: Vec<Entity> = new_entities.to_vec();
 
