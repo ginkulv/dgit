@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use postgres::{Client, Error};
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
@@ -27,8 +29,13 @@ impl Entity {
     }
 }
 
-pub fn db_init(name: &str, password: &str, url: &str, dbname: &str) -> Result<Client, Error> {
-    let conn_str = format!("postgresql://{}:{}@{}/{}", name, &password, &url, &dbname);
+pub fn db_init(credentials: BTreeMap<String, String>) -> Result<Client, Error> {
+    let name: &str = credentials.get("name").unwrap();
+    let password: &str = credentials.get("password").unwrap();
+    let url: &str = credentials.get("url").unwrap();
+    let dbname: &str = credentials.get("dbname").unwrap();
+
+    let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
     let connector = TlsConnector::builder().build().expect("TlsConnector built successfully");
     let connector = MakeTlsConnector::new(connector);
     Client::connect(&conn_str, connector)

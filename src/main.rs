@@ -72,12 +72,7 @@ fn status(dir_path: &str) {
         }
     };
 
-    let name: &str = credentials.get("name").unwrap();
-    let password: &str = credentials.get("password").unwrap();
-    let url: &str = credentials.get("url").unwrap();
-    let dbname: &str = credentials.get("dbname").unwrap();
-
-    let mut client = match db_init(name, password, url, dbname) {
+    let mut client = match db_init(credentials) {
         Ok(client) => client,
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
@@ -125,12 +120,7 @@ fn stage(dir_path: &str, arguments: &[String]) {
         Err(_) => { println!("File .credentials doesn't exists!"); return } // TODO suggest creating one
     };
 
-    let name: &str = credentials.get("name").unwrap();
-    let password: &str = credentials.get("password").unwrap();
-    let url: &str = credentials.get("url").unwrap();
-    let dbname: &str = credentials.get("dbname").unwrap();
-
-    let mut client = match db_init(name, password, url, dbname) {
+    let mut client = match db_init(credentials) {
         Ok(client) => client,
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
