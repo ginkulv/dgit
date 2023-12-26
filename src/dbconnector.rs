@@ -2,6 +2,7 @@ use postgres::{Client, Error};
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
 
+#[derive(Clone)]
 pub struct Entity {
     pub domain: String,
     pub name: String,

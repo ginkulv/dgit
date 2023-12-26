@@ -20,7 +20,7 @@ fn init(dir_path: &str) {
 
     match fs::create_dir_all(&path) {
         Ok(_) => println!("Directory .dgit was created successfully"),
-        Err(_) => { println!("Couldn't create directory {}!", &path); return }
+        Err(_) => { println!("Couldn't create directory {}", &path); return }
     };
 
     let cred_path = format!("{}{}", path, "/.credentials");
@@ -82,7 +82,7 @@ fn status(dir_path: &str) {
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
     let entities: Vec<Entity> = get_entities(&mut client);
-    let staged_entities: Vec<Entity> = read_staged(&dir_path).unwrap_or_default();
+    let staged_entities: Vec<Entity> = read_staged_entities(&dir_path).unwrap_or_default();
 
     let mut untracked_entities: Vec<&Entity> = Vec::new();
     let mut entity_is_staged: bool;
@@ -132,7 +132,7 @@ fn add(dir_path: &str, arguments: &[String]) {
 
     let mut client = match db_init(name, password, url, dbname) {
         Ok(client) => client,
-        Err(_) => { println!("Coudln't connect to the database"); std::process::exit(0); }
+        Err(_) => { println!("Coudln't connect to the database"); return; }
     };
     let entities: Vec<Entity> = get_entities(&mut client);
     let mut entities_add: Vec<Entity> = Vec::new();
@@ -143,18 +143,13 @@ fn add(dir_path: &str, arguments: &[String]) {
             Err(error) => { println!("{}", error); return }
         };
         println!("{}", entity.to_string());
-        entities_add.push(entity);
-    }
-
-    let mut tables: Vec<String> = Vec::new();
-    for entity in entities_add {
-        if entities.contains(&entity) {
-            tables.push(entity.to_string());
+        if entities.contains(&entity) { 
+            entities_add.push(entity);
         }
     }
-    match store_staged(dir_path, &tables) {
-        Ok(()) => println!("Added changes successfully"),
-        Err(_) => { println!("Coudn't write the changes"); return }
+    match store_staged(dir_path, entities_add) {
+        Ok(()) => println!("Staged successfully"),
+        Err(_) => { println!("Coudln't stage"); return }
     };
 }
 
