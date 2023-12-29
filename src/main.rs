@@ -137,6 +137,14 @@ fn stage(dir_path: &str, arguments: &[String]) {
             entities_to_stage.push(entity);
         }
     }
+
+    let staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
+    for staged in staged_entities {
+        if !entities_to_stage.contains(&staged) {
+            entities_to_stage.push(staged);
+        }
+    }
+
     match store_staged(dir_path, entities_to_stage) {
         Ok(()) => println!("Staged successfully"),
         Err(_) => { println!("Coudln't stage"); return }

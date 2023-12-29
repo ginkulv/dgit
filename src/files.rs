@@ -34,17 +34,8 @@ pub fn read_staged_entities(dir_path: &str) -> Result<Vec<Entity>, Error> {
     Ok(entities)
 }
 
-pub fn store_staged(dir_path: &str, new_entities: Vec<Entity>) -> Result<(), Error> {
-    let staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
+pub fn store_staged(dir_path: &str, entities_to_stage: Vec<Entity>) -> Result<(), Error> {
     let path = format!("{}{}", dir_path, "/.dgit/stage");
-
-    let mut entities_to_stage: Vec<Entity> = new_entities.to_vec();
-
-    for staged in staged_entities {
-        if !new_entities.contains(&staged) {
-            entities_to_stage.push(staged);
-        }
-    }
 
     let mut tables: Vec<String> = Vec::new();
     for entity in entities_to_stage {
