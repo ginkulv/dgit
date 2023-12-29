@@ -23,16 +23,16 @@ fn init(dir_path: &str) {
         Err(_) => { println!("Couldn't create directory {}", &path); return }
     };
 
-    let cred_path = format!("{}{}", path, "/.credentials");
+    let cred_path = format!("{}{}", path, "/credentials");
 
     if Path::new(&cred_path).exists() {
-        println!("File .credentials already exists");
+        println!("File credentials already exists");
         return
     }
 
     match fs::File::create(&cred_path) {
-        Ok(_) => println!("File .credentials was created successfully"),
-        Err(_) => { println!("Couldn't create the .credentials file"); return }
+        Ok(_) => println!("File credentials was created successfully"),
+        Err(_) => { println!("Couldn't create the credentials file"); return }
     };
 
     println!("Input your credentials for database:");
@@ -67,7 +67,7 @@ fn status(dir_path: &str) {
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
         Err(_) => {
-            println!("File .credentials doesn't exists!");  // TODO suggest creating one
+            println!("File credentials doesn't exists!");  // TODO suggest creating one
             return
         }
     };
@@ -117,7 +117,7 @@ fn stage(dir_path: &str, arguments: &[String]) {
 
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
-        Err(_) => { println!("File .credentials doesn't exists!"); return } // TODO suggest creating one
+        Err(_) => { println!("File credentials doesn't exists!"); return } // TODO suggest creating one
     };
 
     let mut client = match db_init(credentials) {
@@ -159,7 +159,7 @@ fn unstage(dir_path: &str, arguments: &[String]) {
 
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
-        Err(_) => { println!("File .credentials doesn't exists!"); return }
+        Err(_) => { println!("File credentials doesn't exists!"); return }
     };
 
     let mut client = match db_init(credentials) {

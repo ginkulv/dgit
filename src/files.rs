@@ -5,14 +5,14 @@ use serde_json::{from_reader, to_string};
 use crate::dbconnector::Entity;
 
 pub fn read_credentials(dir_path: &str) -> Result<BTreeMap<String, String>, Error> {
-    let path = format!("{}{}", dir_path, "/.dgit/.credentials");
+    let path = format!("{}{}", dir_path, "/.dgit/credentials");
     let file = fs::File::open(&path)?;
     let credentials: BTreeMap<String, String> = from_reader(&file).unwrap();
     Ok(credentials)
 }
 
 pub fn store_credentials(dir_path: &str, credentials: &BTreeMap<&str, &str>) -> Result<(), Error> {
-    let path = format!("{}{}", dir_path, "/.dgit/.credentials");
+    let path = format!("{}{}", dir_path, "/.dgit/credentials");
     let yaml = to_string(&credentials).unwrap();
     std::fs::write(&path, &yaml)?;
     Ok(())
