@@ -151,6 +151,44 @@ fn stage(dir_path: &str, arguments: &[String]) {
     };
 }
 
+fn unstage(dir_path: &str, arguments: &[String]) {
+    if !repo_exists(dir_path) {
+        println!("Not in repository!");
+        return
+    }
+
+    let credentials = match read_credentials(dir_path) {
+        Ok(credentials) => credentials,
+        Err(_) => { println!("File .credentials doesn't exists!"); return }
+    };
+
+    let mut client = match db_init(credentials) {
+        Ok(client) => client,
+        Err(_) => { println!("Coudln't connect to the database"); return; }
+    };
+    let entities: Vec<Entity> = get_entities(&mut client);
+    let mut entities_to_unstage: Vec<Entity> = Vec::new();
+
+    for argument in arguments {
+        let entity = match parse_argument(&argument) {
+            Ok(entity) => entity,
+            Err(error) => { println!("{}", error); return }
+        };
+        println!("{}", entity.to_string());
+        if entities.contains(&entity) { 
+            entities_to_unstage.push(entity);
+        }
+    }
+
+    let mut staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
+    staged_entities = staged_entities.into_iter().filter(|e| !entities_to_unstage.contains(e)).collect();
+
+    match store_staged(dir_path, staged_entities) {
+        Ok(()) => println!("Unstaged successfully"),
+        Err(_) => { println!("Coudln't unstage"); return }
+    };
+}
+
 fn main() {
     let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
     let args: Vec<String> = env::args().collect();
@@ -165,6 +203,7 @@ fn main() {
         "init" => init(&current_dir),
         "status" => status(&current_dir),
         "stage" => stage(&current_dir, &args[2..]),
+        "unstage" => unstage(&current_dir, &args[2..]),
         _ => println!("Invalid command: {}", command)
     };
 }
