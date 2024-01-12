@@ -1,9 +1,15 @@
-use std::collections::BTreeMap;
-
 use postgres::{Client, Error};
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
 use serde_derive::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct Credentials {
+    pub name: String,
+    pub password: String,
+    pub url: String,
+    pub dbname: String,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Entity {
@@ -18,25 +24,13 @@ impl PartialEq for Entity {
 }
 
 impl Entity {
-    pub fn new(domain: String, name: String) -> Self {
-        Entity {
-            domain,
-            name,
-        }
-    }
-
     pub fn to_string(&self) -> String {
         format!("{}.{}", self.domain, self.name)
     }
 }
 
-pub fn db_init(credentials: BTreeMap<String, String>) -> Result<Client, Error> {
-    let name: &str = credentials.get("name").unwrap();
-    let password: &str = credentials.get("password").unwrap();
-    let url: &str = credentials.get("url").unwrap();
-    let dbname: &str = credentials.get("dbname").unwrap();
-
-    let conn_str = format!("postgresql://{}:{}@{}/{}", &name, &password, &url, &dbname);
+pub fn db_init(creds: &Credentials) -> Result<Client, Error> {
+    let conn_str = format!("postgresql://{}:{}@{}/{}", creds.name, creds.password, creds.url, creds.dbname);
     let connector = TlsConnector::builder().build().expect("TlsConnector built successfully");
     let connector = MakeTlsConnector::new(connector);
     Client::connect(&conn_str, connector)
@@ -44,11 +38,17 @@ pub fn db_init(credentials: BTreeMap<String, String>) -> Result<Client, Error> {
 
 pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
     let mut entities: Vec<Entity> = Vec::new();
-    for row in client.query("select distinct table_schema, table_name
+    let query = r#"
+        select distinct table_schema, table_name
         from information_schema.columns
-        where table_schema not in ('information_schema', 'pg_catalog')", &[]).unwrap() {
-            let entity = Entity::new(row.get("table_schema"), row.get("table_name"));
+        where table_schema not in ('information_schema', 'pg_catalog')
+    "#;
+    for row in client.query(query, &[]).unwrap() {
+            let entity = Entity {
+                name: row.get("table_name"),
+                domain: row.get("table_schema"),
+            };
             entities.push(entity);
-    }
+        }
     return entities;
 }

@@ -6,10 +6,11 @@ use colored::Colorize;
 use utils::*;
 use files::*;
 use dbconnector::{db_init, Entity, get_entities};
-use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::Path;
+
+use crate::dbconnector::Credentials;
 
 fn init(dir_path: &str) {
     if repo_exists(dir_path) {
@@ -42,14 +43,14 @@ fn init(dir_path: &str) {
     let name: String = read_string("Username");
     let password: String = read_string("Password");
 
-    let credentials: BTreeMap<&str, &str> = BTreeMap::from([
-        ("url", url.as_str()),
-        ("dbname", dbname.as_str()),
-        ("name", name.as_str()),
-        ("password", password.as_str()),
-    ]);
+    let credentials: Credentials = Credentials {
+        name,
+        password,
+        url,
+        dbname,
+    };
 
-    match store_credentials(dir_path, &credentials) {
+    match store_credentials(dir_path, credentials) {
         Ok(_) => println!("Repository was initialized successfully"),
         Err(_) => {
             print!("Coudn't save credentials");
@@ -72,7 +73,7 @@ fn status(dir_path: &str) {
         }
     };
 
-    let mut client = match db_init(credentials) {
+    let mut client = match db_init(&credentials) {
         Ok(client) => client,
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
@@ -120,7 +121,7 @@ fn stage(dir_path: &str, arguments: &[String]) {
         Err(_) => { println!("File credentials doesn't exists!"); return } // TODO suggest creating one
     };
 
-    let mut client = match db_init(credentials) {
+    let mut client = match db_init(&credentials) {
         Ok(client) => client,
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
@@ -162,7 +163,7 @@ fn unstage(dir_path: &str, arguments: &[String]) {
         Err(_) => { println!("File credentials doesn't exists!"); return }
     };
 
-    let mut client = match db_init(credentials) {
+    let mut client = match db_init(&credentials) {
         Ok(client) => client,
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
