@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use postgres::{Client, Error};
 use postgres_native_tls::MakeTlsConnector;
 use native_tls::TlsConnector;
+use serde_derive::{Serialize, Deserialize};
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Entity {
     pub domain: String,
     pub name: String,
