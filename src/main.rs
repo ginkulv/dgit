@@ -176,7 +176,7 @@ fn unstage(dir_path: &str, arguments: &[String]) {
             Err(error) => { println!("{}", error); return }
         };
         println!("{}", entity.to_string());
-        if entities.contains(&entity) { 
+        if entities.contains(&entity) {
             entities_to_unstage.push(entity);
         }
     }
@@ -187,6 +187,44 @@ fn unstage(dir_path: &str, arguments: &[String]) {
     match store_staged(dir_path, staged_entities) {
         Ok(()) => println!("Unstaged successfully"),
         Err(_) => { println!("Coudln't unstage"); return }
+    };
+}
+
+fn commit(dir_path: &str) {
+    if !repo_exists(dir_path) {
+        println!("Not in repository!");
+        return
+    }
+
+    let staged_entities = match read_staged_entities(dir_path) {
+        Ok(staged) => staged,
+        Err(_) => {
+            println!("");
+            return
+        }
+    };
+
+    let commit: Commit = Commit {
+        entities: staged_entities
+    };
+
+    let mut commits: Vec<Commit> = read_commited(dir_path).unwrap_or_default(); 
+    commits.push(commit);
+
+    match store_commited(dir_path, commits) {
+        Ok(()) => println!("Changes commited successfully"),
+        Err(_) => {
+            println!("");
+            return;
+        }
+    };
+
+    match store_staged(dir_path, Vec::new()) {
+        Ok(()) => (),
+        Err(_) => {
+            println!("Coudln't clear staged");
+            return 
+        }
     };
 }
 
@@ -205,6 +243,7 @@ fn main() {
         "status" => status(&current_dir),
         "stage" => stage(&current_dir, &args[2..]),
         "unstage" => unstage(&current_dir, &args[2..]),
+        "commit" => commit(&current_dir),
         _ => println!("Invalid command: {}", command)
     };
 }

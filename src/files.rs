@@ -2,6 +2,12 @@ use std::{fs, io::Error};
 
 use serde_json::{from_reader, to_string};
 use crate::dbconnector::{Entity, Credentials};
+use serde_derive::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct Commit {
+    pub entities: Vec<Entity>
+}
 
 pub fn read_credentials(dir_path: &str) -> Result<Credentials, Error> {
     let path = format!("{}{}", dir_path, "/.dgit/credentials");
@@ -27,6 +33,20 @@ pub fn read_staged_entities(dir_path: &str) -> Result<Vec<Entity>, Error> {
 pub fn store_staged(dir_path: &str, entities_to_stage: Vec<Entity>) -> Result<(), Error> {
     let path = format!("{}{}", dir_path, "/.dgit/stage");
     let json = to_string(&entities_to_stage).unwrap();
+    fs::write(&path, &json)?;
+    Ok(())
+}
+
+pub fn read_commited(dir_path: &str) -> Result<Vec<Commit>, Error> {
+    let path = format!("{}{}", dir_path, "/.dgit/commit");
+    let file = fs::File::open(&path)?;
+    let commits: Vec<Commit> = from_reader(&file).unwrap();
+    Ok(commits)
+}
+
+pub fn store_commited(dir_path: &str, commits: Vec<Commit>) -> Result<(), Error> {
+    let path = format!("{}{}", dir_path, "/.dgit/commit");
+    let json = to_string(&commits).unwrap();
     fs::write(&path, &json)?;
     Ok(())
 }
