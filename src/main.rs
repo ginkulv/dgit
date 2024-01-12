@@ -9,6 +9,7 @@ use dbconnector::{db_init, Entity, get_entities};
 use std::env;
 use std::fs;
 use std::path::Path;
+use chrono::offset::Utc;
 
 use crate::dbconnector::Credentials;
 
@@ -205,7 +206,8 @@ fn commit(dir_path: &str) {
     };
 
     let commit: Commit = Commit {
-        entities: staged_entities
+        entities: staged_entities,
+        timestamp: Utc::now(),
     };
 
     let mut commits: Vec<Commit> = read_commited(dir_path).unwrap_or_default(); 

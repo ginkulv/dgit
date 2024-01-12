@@ -12,5 +12,5 @@ native-tls = "*"
 postgres-native-tls = "0.5"
 serde_json = "1.0"
 serde = "1.0"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
 serde_derive = "1.0.195"

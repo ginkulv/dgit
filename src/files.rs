@@ -1,12 +1,15 @@
 use std::{fs, io::Error};
 
+use chrono::{DateTime, Utc, serde::ts_seconds};
 use serde_json::{from_reader, to_string};
 use crate::dbconnector::{Entity, Credentials};
 use serde_derive::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Commit {
-    pub entities: Vec<Entity>
+    pub entities: Vec<Entity>,
+    #[serde(with = "ts_seconds")]
+    pub timestamp: DateTime<Utc>,
 }
 
 pub fn read_credentials(dir_path: &str) -> Result<Credentials, Error> {
