@@ -39,14 +39,14 @@ pub fn db_init(creds: &Credentials) -> Result<Client, Error> {
 pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
     let mut entities: Vec<Entity> = Vec::new();
     let query = r#"
-        select distinct table_schema, table_name
-        from information_schema.columns
-        where table_schema not in ('information_schema', 'pg_catalog')
+        select schemaname, tablename
+        from pg_catalog.pg_tables
+        where schemaname not in ('information_schema', 'pg_catalog')
     "#;
     for row in client.query(query, &[]).unwrap() {
             let entity = Entity {
-                name: row.get("table_name"),
-                domain: row.get("table_schema"),
+                name: row.get("tablename"),
+                domain: row.get("schemaname"),
             };
             entities.push(entity);
         }

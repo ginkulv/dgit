@@ -112,7 +112,7 @@ fn status(dir_path: &str) {
     if staged_entities.len() != 0 {
         println!("Staged:");
         for staged in &staged_entities {
-            println!("    {}{}{}", staged.domain.green(), String::from(".").green(), staged.name.green());
+            println!("    {}{}{}", staged.domain.cyan(), String::from(".").cyan(), staged.name.cyan());
         }
     }
 }
@@ -135,12 +135,19 @@ fn stage(dir_path: &str, arguments: &[String]) {
     let entities: Vec<Entity> = get_entities(&mut client);
     let mut entities_to_stage: Vec<Entity> = Vec::new();
 
+    let commited_entities: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let last_commit: Option<&Commit> = commited_entities.last();
+    let mut tracked_entities: &Vec<Entity> = &Vec::new();
+    if let Some(commit) = last_commit {
+        tracked_entities = &commit.entities;
+    }
+
     for argument in arguments {
         let entity = match parse_argument(&argument) {
             Ok(entity) => entity,
             Err(error) => { println!("{}", error); return }
         };
-        if entities.contains(&entity) { 
+        if entities.contains(&entity) && !tracked_entities.contains(&entity) {
             entities_to_stage.push(entity);
         }
     }
