@@ -173,6 +173,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -1015,6 +1016,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "854cbdc4f7bc6ae19c820d44abdc3277ac3e1b2b93db20a636825d9322fb60e6"
 dependencies = [
  "tinyvec",
+]
+
+[[package]]
+name = "uuid"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
+dependencies = [
+ "getrandom",
+ "rand",
 ]
 
 [[package]]

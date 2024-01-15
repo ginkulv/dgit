@@ -6,6 +6,7 @@ use colored::Colorize;
 use utils::*;
 use files::*;
 use dbconnector::{db_init, Entity, get_entities};
+use uuid::Uuid;
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -254,6 +255,7 @@ fn commit(dir_path: &str) {
     let commit: Commit = Commit {
         entities: staged_entities.into_iter().filter(|e| e.exists).collect(),
         timestamp: Utc::now(),
+        uuid: Uuid::new_v4().to_string()
     };
 
     commits.push(commit);
@@ -326,6 +328,22 @@ fn remove(dir_path: &str, arguments: &[String]) {
     };
 }
 
+fn log(dir_path: &str) {
+    if !repo_exists(dir_path) {
+        println!("Not in repository!");
+        return
+    }
+    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    for commit in commits {
+        println!("Commit: {}", commit.uuid);
+        println!("Timestamp: {}", commit.timestamp);
+        for entity in commit.entities {
+            println!("Tracked: {}.{}", entity.domain, entity.name);
+        }
+        println!("");
+    }
+}
+
 fn main() {
     let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
     let args: Vec<String> = env::args().collect();
@@ -343,6 +361,7 @@ fn main() {
         "unstage" => unstage(&current_dir, &args[2..]),
         "commit" => commit(&current_dir),
         "remove" => remove(&current_dir, &args[2..]),
+        "log" => log(&current_dir),
         _ => println!("Invalid command: {}", command)
     };
 }

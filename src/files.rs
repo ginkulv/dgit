@@ -5,11 +5,12 @@ use serde_json::{from_reader, to_string};
 use crate::dbconnector::{Entity, Credentials};
 use serde_derive::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Hash)]
 pub struct Commit {
     pub entities: Vec<Entity>,
     #[serde(with = "ts_seconds")]
     pub timestamp: DateTime<Utc>,
+    pub uuid: String,
 }
 
 pub fn read_credentials(dir_path: &str) -> Result<Credentials, Error> {

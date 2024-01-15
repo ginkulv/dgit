@@ -11,7 +11,7 @@ pub struct Credentials {
     pub dbname: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash)]
 pub struct Entity {
     pub domain: String,
     pub name: String,
