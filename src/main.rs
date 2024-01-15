@@ -81,8 +81,8 @@ fn status(dir_path: &str) {
 
     let entities: Vec<Entity> = get_entities(&mut client);
     let staged_entities: Vec<Entity> = read_staged_entities(&dir_path).unwrap_or_default();
-    let commited_entities: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
-    let last_commit: Option<&Commit> = commited_entities.last();
+    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let last_commit: Option<&Commit> = commits.last();
     let mut tracked_entities: &Vec<Entity> = &Vec::new();
     if let Some(commit) = last_commit {
         tracked_entities = &commit.entities;
@@ -135,8 +135,8 @@ fn stage(dir_path: &str, arguments: &[String]) {
     let entities: Vec<Entity> = get_entities(&mut client);
     let mut entities_to_stage: Vec<Entity> = Vec::new();
 
-    let commited_entities: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
-    let last_commit: Option<&Commit> = commited_entities.last();
+    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let last_commit: Option<&Commit> = commits.last();
     let mut tracked_entities: &Vec<Entity> = &Vec::new();
     if let Some(commit) = last_commit {
         tracked_entities = &commit.entities;
@@ -209,7 +209,7 @@ fn commit(dir_path: &str) {
         return
     }
 
-    let staged_entities = match read_staged_entities(dir_path) {
+    let mut staged_entities = match read_staged_entities(dir_path) {
         Ok(staged) => staged,
         Err(_) => {
             println!("No staged changes");
@@ -222,12 +222,20 @@ fn commit(dir_path: &str) {
         return
     }
 
+    let mut commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let last_commit: Option<&Commit> = commits.last();
+    let mut tracked_entities: Vec<Entity> = Vec::new();
+    if let Some(commit) = last_commit {
+        tracked_entities = commit.entities.clone();
+    }
+    // It is insured in `stage` function that only untracked entities are staged
+    staged_entities.append(&mut tracked_entities);
+
     let commit: Commit = Commit {
         entities: staged_entities,
         timestamp: Utc::now(),
     };
 
-    let mut commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default(); 
     commits.push(commit);
 
     match store_commited_entities(dir_path, commits) {
