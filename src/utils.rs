@@ -24,7 +24,7 @@ pub fn read_string(print_str: &str) -> String {
 
 pub fn parse_argument(argument: &str) -> Result<Entity, String> {
     let result: Vec<&str> = argument.split(".").collect();
-    if result.len() == 1 {
+    if result.len() != 2 {
         return Err(format!("Invalid argument provided: {}", &argument))
     }
     let domain = result[0];

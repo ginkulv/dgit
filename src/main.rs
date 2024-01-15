@@ -78,21 +78,27 @@ fn status(dir_path: &str) {
         Ok(client) => client,
         Err(_) => { println!("Coudln't connect to the database"); return; }
     };
+
     let entities: Vec<Entity> = get_entities(&mut client);
     let staged_entities: Vec<Entity> = read_staged_entities(&dir_path).unwrap_or_default();
+    let commited_entities: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let last_commit: Option<&Commit> = commited_entities.last();
+    let mut tracked_entities: &Vec<Entity> = &Vec::new();
+    if let Some(commit) = last_commit {
+        tracked_entities = &commit.entities;
+    }
 
     let mut untracked_entities: Vec<&Entity> = Vec::new();
-    let mut entity_is_staged: bool;
     for entity in &entities {
-        entity_is_staged = false;
-        for staged in &staged_entities {
-            if entity == staged {
-                entity_is_staged = true;
-                break;
-            }
-        }
-        if !entity_is_staged {
+        if !staged_entities.contains(entity) && !tracked_entities.contains(entity){
             untracked_entities.push(entity);
+        }
+    }
+
+    if tracked_entities.len() != 0 {
+        println!("Tracked:");
+        for tracked in tracked_entities {
+            println!("    {}{}{}", tracked.domain.green(), String::from(".").green(), tracked.name.green());
         }
     }
 
@@ -134,7 +140,6 @@ fn stage(dir_path: &str, arguments: &[String]) {
             Ok(entity) => entity,
             Err(error) => { println!("{}", error); return }
         };
-        println!("{}", entity.to_string());
         if entities.contains(&entity) { 
             entities_to_stage.push(entity);
         }
@@ -147,7 +152,7 @@ fn stage(dir_path: &str, arguments: &[String]) {
         }
     }
 
-    match store_staged(dir_path, entities_to_stage) {
+    match store_staged_entities(dir_path, entities_to_stage) {
         Ok(()) => println!("Staged successfully"),
         Err(_) => { println!("Coudln't stage"); return }
     };
@@ -185,7 +190,7 @@ fn unstage(dir_path: &str, arguments: &[String]) {
     let mut staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
     staged_entities = staged_entities.into_iter().filter(|e| !entities_to_unstage.contains(e)).collect();
 
-    match store_staged(dir_path, staged_entities) {
+    match store_staged_entities(dir_path, staged_entities) {
         Ok(()) => println!("Unstaged successfully"),
         Err(_) => { println!("Coudln't unstage"); return }
     };
@@ -200,20 +205,25 @@ fn commit(dir_path: &str) {
     let staged_entities = match read_staged_entities(dir_path) {
         Ok(staged) => staged,
         Err(_) => {
-            println!("");
+            println!("No staged changes");
             return
         }
     };
+
+    if staged_entities.len() == 0 {
+        println!("No staged entities found");
+        return
+    }
 
     let commit: Commit = Commit {
         entities: staged_entities,
         timestamp: Utc::now(),
     };
 
-    let mut commits: Vec<Commit> = read_commited(dir_path).unwrap_or_default(); 
+    let mut commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default(); 
     commits.push(commit);
 
-    match store_commited(dir_path, commits) {
+    match store_commited_entities(dir_path, commits) {
         Ok(()) => println!("Changes commited successfully"),
         Err(_) => {
             println!("");
@@ -221,7 +231,7 @@ fn commit(dir_path: &str) {
         }
     };
 
-    match store_staged(dir_path, Vec::new()) {
+    match store_staged_entities(dir_path, Vec::new()) {
         Ok(()) => (),
         Err(_) => {
             println!("Coudln't clear staged");
