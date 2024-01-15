@@ -11,10 +11,11 @@ pub struct Credentials {
     pub dbname: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Entity {
     pub domain: String,
     pub name: String,
+    pub exists: bool,
 }
 
 impl PartialEq for Entity {
@@ -47,6 +48,7 @@ pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
             let entity = Entity {
                 name: row.get("tablename"),
                 domain: row.get("schemaname"),
+                exists: true
             };
             entities.push(entity);
         }

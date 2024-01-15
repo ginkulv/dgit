@@ -29,5 +29,5 @@ pub fn parse_argument(argument: &str) -> Result<Entity, String> {
     }
     let domain = result[0];
     let name = result[1];
-    Ok(Entity { domain: String::from(domain), name: String::from(name) })
+    Ok(Entity { domain: String::from(domain), name: String::from(name), exists: true })
 }

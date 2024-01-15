@@ -69,7 +69,7 @@ fn status(dir_path: &str) {
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
         Err(_) => {
-            println!("File credentials doesn't exists!");  // TODO suggest creating one
+            println!("File credentials doesn't exists!");
             return
         }
     };
@@ -90,8 +90,22 @@ fn status(dir_path: &str) {
 
     let mut untracked_entities: Vec<&Entity> = Vec::new();
     for entity in &entities {
-        if !staged_entities.contains(entity) && !tracked_entities.contains(entity){
+        if !staged_entities.contains(entity) && !tracked_entities.contains(entity) {
             untracked_entities.push(entity);
+        }
+    }
+
+    let mut removed_entities: Vec<&Entity> = Vec::new();
+    for entity in tracked_entities {
+        if !entities.contains(entity) && !staged_entities.contains(entity) {
+            removed_entities.push(entity);
+        }
+    }
+
+    if removed_entities.len() != 0 {
+        println!("Removed:");
+        for removed in removed_entities {
+            println!("    {}{}{}", removed.domain.magenta(), String::from(".").magenta(), removed.name.magenta());
         }
     }
 
@@ -125,7 +139,7 @@ fn stage(dir_path: &str, arguments: &[String]) {
 
     let credentials = match read_credentials(dir_path) {
         Ok(credentials) => credentials,
-        Err(_) => { println!("File credentials doesn't exists!"); return } // TODO suggest creating one
+        Err(_) => { println!("File credentials doesn't exists!"); return }
     };
 
     let mut client = match db_init(&credentials) {
@@ -149,6 +163,8 @@ fn stage(dir_path: &str, arguments: &[String]) {
         };
         if entities.contains(&entity) && !tracked_entities.contains(&entity) {
             entities_to_stage.push(entity);
+        } else {
+            println!("{}.{} didn't change", entity.domain, entity.name);
         }
     }
 
@@ -160,7 +176,7 @@ fn stage(dir_path: &str, arguments: &[String]) {
     }
 
     match store_staged_entities(dir_path, entities_to_stage) {
-        Ok(()) => println!("Staged successfully"),
+        Ok(()) => {},
         Err(_) => { println!("Coudln't stage"); return }
     };
 }
@@ -228,11 +244,15 @@ fn commit(dir_path: &str) {
     if let Some(commit) = last_commit {
         tracked_entities = commit.entities.clone();
     }
-    // It is insured in `stage` function that only untracked entities are staged
-    staged_entities.append(&mut tracked_entities);
+
+    for tracked in tracked_entities {
+        if !staged_entities.contains(&tracked) {
+            staged_entities.push(tracked);
+        }
+    }
 
     let commit: Commit = Commit {
-        entities: staged_entities,
+        entities: staged_entities.into_iter().filter(|e| e.exists).collect(),
         timestamp: Utc::now(),
     };
 
@@ -255,6 +275,57 @@ fn commit(dir_path: &str) {
     };
 }
 
+fn remove(dir_path: &str, arguments: &[String]) {
+    if !repo_exists(dir_path) {
+        println!("Not in repository!");
+        return
+    }
+
+    let credentials = match read_credentials(dir_path) {
+        Ok(credentials) => credentials,
+        Err(_) => { println!("File credentials doesn't exists!"); return }
+    };
+
+    let mut client = match db_init(&credentials) {
+        Ok(client) => client,
+        Err(_) => { println!("Coudln't connect to the database"); return; }
+    };
+    let entities: Vec<Entity> = get_entities(&mut client);
+    let mut entities_to_remove: Vec<Entity> = Vec::new();
+
+    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let last_commit: Option<&Commit> = commits.last();
+    let mut tracked_entities: &Vec<Entity> = &Vec::new();
+    if let Some(commit) = last_commit {
+        tracked_entities = &commit.entities;
+    }
+
+    for argument in arguments {
+        let mut entity = match parse_argument(&argument) {
+            Ok(entity) => entity,
+            Err(error) => { println!("{}", error); return }
+        };
+        if !entities.contains(&entity) && tracked_entities.contains(&entity) {
+            entity.exists = false;
+            entities_to_remove.push(entity);
+        } else {
+            println!("{}.{} is not tracked", entity.domain, entity.name);
+        }
+    }
+
+    let staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
+    for staged in staged_entities {
+        if !entities_to_remove.contains(&staged) {
+            entities_to_remove.push(staged);
+        }
+    }
+
+    match store_staged_entities(dir_path, entities_to_remove) {
+        Ok(()) => {},
+        Err(_) => { println!("Coudln't stage"); return }
+    };
+}
+
 fn main() {
     let current_dir: String = std::env::current_dir().unwrap().into_os_string().into_string().unwrap();
     let args: Vec<String> = env::args().collect();
@@ -271,6 +342,7 @@ fn main() {
         "stage" => stage(&current_dir, &args[2..]),
         "unstage" => unstage(&current_dir, &args[2..]),
         "commit" => commit(&current_dir),
+        "remove" => remove(&current_dir, &args[2..]),
         _ => println!("Invalid command: {}", command)
     };
 }
