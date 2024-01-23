@@ -17,7 +17,7 @@ use crate::dbconnector::Credentials;
 fn init(dir_path: &str) {
     if repo_exists(dir_path) {
         println!("Repository already exists");
-        std::process::exit(0);
+        return;
     }
     let path = format!("{}{}", dir_path, "/.dgit");
 
@@ -350,7 +350,7 @@ fn main() {
 
     if args.len() == 1 {
         println!("No arguments provided");
-        std::process::exit(0);
+        return;
     }
 
     let command: &str = &args[1];
