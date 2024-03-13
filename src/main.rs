@@ -56,7 +56,6 @@ fn init(dir_path: &str) {
         Ok(_) => println!("Repository was initialized successfully"),
         Err(_) => {
             print!("Coudn't save credentials");
-            return
         }
     };
 }
@@ -81,6 +80,12 @@ fn status(dir_path: &str) {
     };
 
     let entities: Vec<Entity> = get_entities(&mut client);
+
+    if entities.len() == 0 {
+        println!("No entities found");
+        return
+    }
+
     let staged_entities: Vec<Entity> = read_staged_entities(&dir_path).unwrap_or_default();
     let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
     let last_commit: Option<&Commit> = commits.last();
@@ -177,8 +182,8 @@ fn stage(dir_path: &str, arguments: &[String]) {
     }
 
     match store_staged_entities(dir_path, entities_to_stage) {
-        Ok(()) => {},
-        Err(_) => { println!("Coudln't stage"); return }
+        Ok(()) => {}
+        Err(_) => println!("Coudln't stage")
     };
 }
 
@@ -216,7 +221,7 @@ fn unstage(dir_path: &str, arguments: &[String]) {
 
     match store_staged_entities(dir_path, staged_entities) {
         Ok(()) => println!("Unstaged successfully"),
-        Err(_) => { println!("Coudln't unstage"); return }
+        Err(_) => println!("Coudln't unstage")
     };
 }
 
@@ -272,7 +277,6 @@ fn commit(dir_path: &str) {
         Ok(()) => (),
         Err(_) => {
             println!("Coudln't clear staged");
-            return 
         }
     };
 }
@@ -324,7 +328,7 @@ fn remove(dir_path: &str, arguments: &[String]) {
 
     match store_staged_entities(dir_path, entities_to_remove) {
         Ok(()) => {},
-        Err(_) => { println!("Coudln't stage"); return }
+        Err(_) => { println!("Coudln't stage"); }
     };
 }
 
