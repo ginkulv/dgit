@@ -12,21 +12,22 @@ pub struct Credentials {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash)]
-pub struct Entity {
-    pub domain: String,
+pub struct Column {
     pub name: String,
+    pub data_type: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Hash)]
+pub struct Entity {
+    pub schema: String,
+    pub name: String,
+    pub columns: Vec<Column>,
     pub exists: bool,
 }
 
 impl PartialEq for Entity {
     fn eq(&self, other: &Self) -> bool {
-        self.domain == other.domain && self.name == other.name
-    }
-}
-
-impl Entity {
-    pub fn to_string(&self) -> String {
-        format!("{}.{}", self.domain, self.name)
+        self.schema == other.schema && self.name == other.name
     }
 }
 
@@ -39,18 +40,36 @@ pub fn db_init(creds: &Credentials) -> Result<Client, Error> {
 
 pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
     let mut entities: Vec<Entity> = Vec::new();
-    let query = r#"
+    let mut query = r#"
         select schemaname, tablename
         from pg_catalog.pg_tables
         where schemaname not in ('information_schema', 'pg_catalog')
     "#;
     for row in client.query(query, &[]).unwrap() {
-            let entity = Entity {
-                name: row.get("tablename"),
-                domain: row.get("schemaname"),
-                exists: true
-            };
-            entities.push(entity);
+        let name: String = row.get("tablename");
+        let schema: String = row.get("schemaname");
+
+        query = r#"
+            select column_name, data_type
+            from INFORMATION_SCHEMA.columns
+            where table_schema = $1 and table_name = $2;
+        "#;
+
+        let mut columns: Vec<Column> = Vec::new();
+
+        for column in client.query(query, &[&schema, &name]).unwrap() {
+            columns.push(Column {
+                data_type: column.get("data_type"),
+                name: column.get("column_name"),
+            });
         }
-    return entities;
+        let entity = Entity {
+            name,
+            schema,
+            columns,
+            exists: true,
+        };
+        entities.push(entity);
+    }
+    entities
 }

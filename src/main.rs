@@ -81,11 +81,6 @@ fn status(dir_path: &str) {
 
     let entities: Vec<Entity> = get_entities(&mut client);
 
-    if entities.len() == 0 {
-        println!("No entities found");
-        return
-    }
-
     let staged_entities: Vec<Entity> = read_staged_entities(&dir_path).unwrap_or_default();
     let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
     let last_commit: Option<&Commit> = commits.last();
@@ -111,28 +106,28 @@ fn status(dir_path: &str) {
     if removed_entities.len() != 0 {
         println!("Removed:");
         for removed in removed_entities {
-            println!("    {}{}{}", removed.domain.magenta(), String::from(".").magenta(), removed.name.magenta());
+            println!("    {}{}{}", removed.schema.magenta(), String::from(".").magenta(), removed.name.magenta());
         }
     }
 
     if tracked_entities.len() != 0 {
         println!("Tracked:");
         for tracked in tracked_entities {
-            println!("    {}{}{}", tracked.domain.green(), String::from(".").green(), tracked.name.green());
+            println!("    {}{}{}", tracked.schema.green(), String::from(".").green(), tracked.name.green());
         }
     }
 
     if untracked_entities.len() != 0 {
         println!("Untracked:");
         for entity in &untracked_entities {
-            println!("    {}{}{}", entity.domain.red(), String::from(".").red(), entity.name.red());
+            println!("    {}{}{}", entity.schema.red(), String::from(".").red(), entity.name.red());
         }
     }
 
     if staged_entities.len() != 0 {
         println!("Staged:");
         for staged in &staged_entities {
-            println!("    {}{}{}", staged.domain.cyan(), String::from(".").cyan(), staged.name.cyan());
+            println!("    {}{}{}", staged.schema.cyan(), String::from(".").cyan(), staged.name.cyan());
         }
     }
 }
@@ -163,14 +158,28 @@ fn stage(dir_path: &str, arguments: &[String]) {
     }
 
     for argument in arguments {
-        let entity = match parse_argument(&argument) {
-            Ok(entity) => entity,
+        let (schema, name) = match parse_argument(&argument) {
+            Ok((schema, name)) => (schema, name),
             Err(error) => { println!("{}", error); return }
         };
-        if entities.contains(&entity) && !tracked_entities.contains(&entity) {
-            entities_to_stage.push(entity);
-        } else {
-            println!("{}.{} didn't change", entity.domain, entity.name);
+        let mut is_tracked: bool = false;
+        for entity in tracked_entities {
+            if entity.schema == schema && entity.name == name {
+                is_tracked = true;
+                break;
+            }
+        }
+
+        if is_tracked {
+            println!("{}.{} didn't change", schema, name);
+            continue;
+        }
+
+        for entity in &entities {
+            if entity.schema == schema && entity.name == name {
+                entities_to_stage.push(entity.clone());
+                break;
+            }
         }
     }
 
@@ -206,13 +215,16 @@ fn unstage(dir_path: &str, arguments: &[String]) {
     let mut entities_to_unstage: Vec<Entity> = Vec::new();
 
     for argument in arguments {
-        let entity = match parse_argument(&argument) {
-            Ok(entity) => entity,
+        let (schema, name) = match parse_argument(&argument) {
+            Ok((schema, name)) => (schema, name),
             Err(error) => { println!("{}", error); return }
         };
-        println!("{}", entity.to_string());
-        if entities.contains(&entity) {
-            entities_to_unstage.push(entity);
+        println!("{}.{}", schema, name);
+        for entity in &entities {
+            if entity.schema == schema && entity.name == name {
+                entities_to_unstage.push(entity.clone());
+                break;
+            }
         }
     }
 
@@ -307,15 +319,29 @@ fn remove(dir_path: &str, arguments: &[String]) {
     }
 
     for argument in arguments {
-        let mut entity = match parse_argument(&argument) {
-            Ok(entity) => entity,
+        let (schema, name) = match parse_argument(&argument) {
+            Ok((schema, name)) => (schema, name),
             Err(error) => { println!("{}", error); return }
         };
-        if !entities.contains(&entity) && tracked_entities.contains(&entity) {
-            entity.exists = false;
-            entities_to_remove.push(entity);
-        } else {
-            println!("{}.{} is not tracked", entity.domain, entity.name);
+
+        let mut is_tracked: bool = false;
+        for entity in tracked_entities {
+            if entity.schema == schema && entity.name == name {
+                is_tracked = true;
+            }
+        }
+
+        if !is_tracked {
+            println!("{}.{} is not tracked", schema, name);
+            continue;
+        }
+
+        for entity in &entities {
+            if entity.schema == schema && entity.name == name {
+                let mut entity_to_remove = entity.clone();
+                entity_to_remove.exists = false;
+                entities_to_remove.push(entity_to_remove);
+            }
         }
     }
 
@@ -342,7 +368,7 @@ fn log(dir_path: &str) {
         println!("Commit: {}", commit.uuid);
         println!("Timestamp: {}", commit.timestamp);
         for entity in commit.entities {
-            println!("Tracked: {}.{}", entity.domain, entity.name);
+            println!("Tracked: {}.{}", entity.schema, entity.name);
         }
         println!("");
     }
