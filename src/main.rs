@@ -150,11 +150,13 @@ fn stage(dir_path: &str, arguments: &[String]) {
     let entities: Vec<Entity> = get_entities(&mut client);
     let mut entities_to_stage: Vec<Entity> = Vec::new();
 
-    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let mut staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
+
+    let commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default();
     let last_commit: Option<&Commit> = commits.last();
-    let mut tracked_entities: &Vec<Entity> = &Vec::new();
+    let mut commited_entities: &Vec<Entity> = &Vec::new();
     if let Some(commit) = last_commit {
-        tracked_entities = &commit.entities;
+        commited_entities = &commit.entities;
     }
 
     for argument in arguments {
@@ -162,28 +164,40 @@ fn stage(dir_path: &str, arguments: &[String]) {
             Ok((schema, name)) => (schema, name),
             Err(error) => { println!("{}", error); return }
         };
-        let mut is_tracked: bool = false;
-        for entity in tracked_entities {
-            if entity.schema == schema && entity.name == name {
-                is_tracked = true;
-                break;
-            }
-        }
-
-        if is_tracked {
-            println!("{}.{} didn't change", schema, name);
-            continue;
-        }
-
         for entity in &entities {
-            if entity.schema == schema && entity.name == name {
-                entities_to_stage.push(entity.clone());
-                break;
+            if entity.schema != schema || entity.name != name {
+                continue;
             }
+
+            let mut is_staged: bool = false;
+            for staged_entity in &mut staged_entities {
+                if staged_entity.schema != schema || staged_entity.name != name {
+                    continue;
+                }
+
+                if entity.columns != staged_entity.columns {
+                    staged_entity.columns = entity.columns.clone();
+                }
+                is_staged = true;
+            }
+
+            if !is_staged {
+                entities_to_stage.push(entity.clone());
+            }
+
+            for commited_entity in commited_entities {
+                if commited_entity.schema != schema || commited_entity.name != name {
+                    continue;
+                }
+
+                if entity.columns != commited_entity.columns {
+                    entities_to_stage.push(entity.clone());
+                }
+            }
+
         }
     }
 
-    let staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
     for staged in staged_entities {
         if !entities_to_stage.contains(&staged) {
             entities_to_stage.push(staged);
@@ -202,34 +216,14 @@ fn unstage(dir_path: &str, arguments: &[String]) {
         return
     }
 
-    let credentials = match read_credentials(dir_path) {
-        Ok(credentials) => credentials,
-        Err(_) => { println!("File credentials doesn't exists!"); return }
-    };
-
-    let mut client = match db_init(&credentials) {
-        Ok(client) => client,
-        Err(_) => { println!("Coudln't connect to the database"); return; }
-    };
-    let entities: Vec<Entity> = get_entities(&mut client);
-    let mut entities_to_unstage: Vec<Entity> = Vec::new();
-
+    let mut staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
     for argument in arguments {
         let (schema, name) = match parse_argument(&argument) {
             Ok((schema, name)) => (schema, name),
             Err(error) => { println!("{}", error); return }
         };
-        println!("{}.{}", schema, name);
-        for entity in &entities {
-            if entity.schema == schema && entity.name == name {
-                entities_to_unstage.push(entity.clone());
-                break;
-            }
-        }
+        staged_entities.retain(|e| e.schema != schema || e.name != name);
     }
-
-    let mut staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
-    staged_entities = staged_entities.into_iter().filter(|e| !entities_to_unstage.contains(e)).collect();
 
     match store_staged_entities(dir_path, staged_entities) {
         Ok(()) => println!("Unstaged successfully"),

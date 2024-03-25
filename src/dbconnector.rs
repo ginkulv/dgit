@@ -17,6 +17,12 @@ pub struct Column {
     pub data_type: String,
 }
 
+impl PartialEq for Column {
+    fn eq(&self, other: &Self) -> bool {
+        self.data_type == other.data_type && self.name == other.name
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Hash)]
 pub struct Entity {
     pub schema: String,
@@ -27,7 +33,7 @@ pub struct Entity {
 
 impl PartialEq for Entity {
     fn eq(&self, other: &Self) -> bool {
-        self.schema == other.schema && self.name == other.name
+        self.schema == other.schema && self.name == other.name && self.columns == other.columns
     }
 }
 
@@ -52,7 +58,8 @@ pub fn get_entities(client: &mut Client) -> Vec<Entity>  {
         query = r#"
             select column_name, data_type
             from INFORMATION_SCHEMA.columns
-            where table_schema = $1 and table_name = $2;
+            where table_schema = $1 and table_name = $2
+            order by column_name
         "#;
 
         let mut columns: Vec<Column> = Vec::new();
