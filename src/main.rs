@@ -81,8 +81,8 @@ fn status(dir_path: &str) {
 
     let entities: Vec<Entity> = get_entities(&mut client);
 
-    let staged_entities: Vec<Entity> = read_staged_entities(&dir_path).unwrap_or_default();
-    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let staged_entities: Vec<Entity> = read_staged_entities(dir_path).unwrap_or_default();
+    let commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default();
     let last_commit: Option<&Commit> = commits.last();
     let mut tracked_entities: &Vec<Entity> = &Vec::new();
     if let Some(commit) = last_commit {
@@ -170,6 +170,8 @@ fn stage(dir_path: &str, arguments: &[String]) {
             }
 
             let mut is_staged: bool = false;
+            let mut is_changed: bool = false;
+
             for staged_entity in &mut staged_entities {
                 if staged_entity.schema != schema || staged_entity.name != name {
                     continue;
@@ -181,10 +183,6 @@ fn stage(dir_path: &str, arguments: &[String]) {
                 is_staged = true;
             }
 
-            if !is_staged {
-                entities_to_stage.push(entity.clone());
-            }
-
             for commited_entity in commited_entities {
                 if commited_entity.schema != schema || commited_entity.name != name {
                     continue;
@@ -193,6 +191,11 @@ fn stage(dir_path: &str, arguments: &[String]) {
                 if entity.columns != commited_entity.columns {
                     entities_to_stage.push(entity.clone());
                 }
+                is_changed = true;
+            }
+
+            if !is_staged && !is_changed {
+                entities_to_stage.push(entity.clone());
             }
 
         }
@@ -250,7 +253,7 @@ fn commit(dir_path: &str) {
         return
     }
 
-    let mut commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let mut commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default();
     let last_commit: Option<&Commit> = commits.last();
     let mut tracked_entities: Vec<Entity> = Vec::new();
     if let Some(commit) = last_commit {
@@ -305,7 +308,7 @@ fn remove(dir_path: &str, arguments: &[String]) {
     let entities: Vec<Entity> = get_entities(&mut client);
     let mut entities_to_remove: Vec<Entity> = Vec::new();
 
-    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default();
     let last_commit: Option<&Commit> = commits.last();
     let mut tracked_entities: &Vec<Entity> = &Vec::new();
     if let Some(commit) = last_commit {
@@ -357,7 +360,7 @@ fn log(dir_path: &str) {
         println!("Not in repository!");
         return
     }
-    let commits: Vec<Commit> = read_commited_entities(&dir_path).unwrap_or_default();
+    let commits: Vec<Commit> = read_commited_entities(dir_path).unwrap_or_default();
     for commit in commits {
         println!("Commit: {}", commit.uuid);
         println!("Timestamp: {}", commit.timestamp);
